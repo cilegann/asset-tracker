@@ -92,12 +92,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">資產配置總覽</h2>
           <p className="text-xs text-slate-500 mt-0.5">數值換算為 TWD</p>
         </div>
-        <button onClick={fetchAllPrices} disabled={fetching} className="btn-primary">
+        <button onClick={fetchAllPrices} disabled={fetching} className="btn-primary w-full sm:w-auto justify-center">
           <RefreshCw size={15} className={fetching ? 'animate-spin' : ''} />
           {fetching ? '取得市價中…' : '更新所有市價'}
         </button>
@@ -117,7 +117,7 @@ export default function Dashboard() {
       {/* Total value */}
       <div className="card bg-gradient-to-br from-indigo-900/40 to-slate-800/60">
         <p className="text-xs text-slate-400 mb-1">總資產估值 (TWD)</p>
-        <p className="text-4xl font-bold text-white">{fmtNum(totalValue)}</p>
+        <p className="text-3xl sm:text-4xl font-bold text-white break-all">{fmtNum(totalValue)}</p>
         <p className="text-xs text-slate-500 mt-2">
           {holdingsWithValues.filter(h => h.twd_value == null).length > 0
             ? `⚠ ${holdingsWithValues.filter(h => h.twd_value == null).length} 筆尚未取得市價，未計入總值`
@@ -186,9 +186,9 @@ export default function Dashboard() {
                 {/* Individual holdings */}
                 <div className="pl-2 space-y-0.5">
                   {items.map(h => (
-                    <div key={h.id} className="flex items-center justify-between text-xs text-slate-500">
-                      <span>{h.ticker} {h.name ? `(${h.name})` : ''}</span>
-                      <div className="flex items-center gap-2">
+                    <div key={h.id} className="flex items-center justify-between text-xs text-slate-500 gap-2">
+                      <span className="truncate max-w-[120px] sm:max-w-none">{h.ticker} {h.name ? `(${h.name})` : ''}</span>
+                      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         {h.twd_value == null ? (
                           <span className="text-slate-600">
                             {fmtNum(h.quantity, 4)} 單位 · 待更新市價
@@ -215,11 +215,11 @@ export default function Dashboard() {
       {/* FX rates */}
       <div className="card">
         <h3 className="text-sm font-semibold mb-3">目前匯率 (對 TWD)</h3>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {Object.entries(fxRates).map(([cur, rate]) => (
             <div key={cur} className="bg-slate-900 rounded-xl p-3 text-center">
-              <div className="text-xs text-slate-500 mb-1">{cur}/TWD</div>
-              <div className="font-semibold text-emerald-400">
+              <div className="text-[10px] sm:text-xs text-slate-500 mb-1">{cur}/TWD</div>
+              <div className="text-sm sm:text-base font-semibold text-emerald-400">
                 {rate ? fmtNum(rate, 4) : <span className="text-slate-600">—</span>}
               </div>
             </div>

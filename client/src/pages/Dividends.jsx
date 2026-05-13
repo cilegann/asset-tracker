@@ -179,7 +179,7 @@ export default function Dividends() {
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: '累計股息', value: totalReceived, color: 'text-slate-200', icon: <DollarSign size={16} /> },
           { label: '待再投入', value: totalPending, color: 'text-amber-400', icon: <Clock size={16} /> },
@@ -190,7 +190,7 @@ export default function Dividends() {
               <span className={s.color}>{s.icon}</span>
               {s.label}
             </div>
-            <div className={`text-2xl font-bold ${s.color}`}>
+            <div className={`text-xl sm:text-2xl font-bold ${s.color}`}>
               {fmtNum(s.value)}
             </div>
           </div>
@@ -265,20 +265,20 @@ export default function Dividends() {
       )}
 
       {/* Header + filter */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <h2 className="text-lg font-semibold">股息紀錄</h2>
-          <div className="flex gap-1 ml-2">
+          <div className="flex gap-1 overflow-x-auto pb-2 sm:pb-0 sm:ml-2 no-scrollbar">
             {[['all','全部'], ['pending','待投入'], ['partial','部分'], ['reinvested','已投入']].map(([v,l]) => (
               <button key={v} onClick={() => setFilterStatus(v)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors
+                className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors
                   ${filterStatus === v ? 'bg-slate-600 text-slate-100' : 'text-slate-500 hover:text-slate-300'}`}>
                 {l}
               </button>
             ))}
           </div>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm(true)}>
+        <button className="btn-primary w-full sm:w-auto justify-center" onClick={() => setShowForm(true)}>
           <Plus size={16} /> 新增股息
         </button>
       </div>
@@ -290,8 +290,8 @@ export default function Dividends() {
           <p>尚無股息紀錄</p>
         </div>
       ) : (
-        <div className="card p-0 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card p-0 overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px] sm:min-w-0">
             <thead>
               <tr className="border-b border-slate-700/70 text-xs text-slate-500">
                 <th className="text-left px-4 py-3">標的 / 日期</th>

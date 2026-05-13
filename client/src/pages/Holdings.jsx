@@ -91,27 +91,27 @@ export default function Holdings() {
   return (
     <div className="space-y-6">
       {/* Summary strip */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
         {grouped.map(g => (
           <button key={g.value} onClick={() => setFilter(filter === g.value ? 'all' : g.value)}
-            className={`card text-center cursor-pointer transition-all hover:border-slate-600
+            className={`card p-2 sm:p-4 text-center cursor-pointer transition-all hover:border-slate-600
               ${filter === g.value ? 'border-indigo-500/60 bg-indigo-900/20' : ''}`}>
-            <div className="text-xl mb-1">{g.emoji}</div>
-            <div className="text-xs text-slate-400 mb-1">{g.label}</div>
-            <div className="text-sm font-semibold">{g.items.length} 檔</div>
+            <div className="text-lg sm:text-xl mb-1">{g.emoji}</div>
+            <div className="text-[10px] sm:text-xs text-slate-400 mb-1 truncate">{g.label}</div>
+            <div className="text-xs sm:text-sm font-semibold">{g.items.length} 檔</div>
           </button>
         ))}
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">投資部位</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             共 {filtered.length} 筆 {filter !== 'all' && `(${getAssetClass(filter).label})`}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditTarget(null); setShowForm(true); }}>
+        <button className="btn-primary w-full sm:w-auto justify-center" onClick={() => { setEditTarget(null); setShowForm(true); }}>
           <Plus size={16} /> 新增持倉
         </button>
       </div>
@@ -124,8 +124,8 @@ export default function Holdings() {
           <p className="text-xs mt-1">點擊右上角「新增持倉」開始記錄</p>
         </div>
       ) : (
-        <div className="card p-0 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card p-0 overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px] sm:min-w-0">
             <thead>
               <tr className="border-b border-slate-700/70 text-xs text-slate-500">
                 <th className="text-left px-4 py-3">代號 / 名稱</th>

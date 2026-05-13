@@ -48,6 +48,8 @@
     @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto animate-fade-in;
   }
   .modal-box {
-    @apply bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md my-8 animate-slide-up relative;
+    @apply bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md my-auto sm:my-8 animate-slide-up relative;
   }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
