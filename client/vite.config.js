@@ -8,7 +8,12 @@ export default defineConfig({
     port: 9457,
     host: '0.0.0.0',
     strictPort: true,
-    allowedHosts: ['YOUR_DOMAIN'],
+    allowedHosts: [
+      'YOUR_DOMAIN',
+      'localhost',
+      '127.0.0.1',
+      'YOUR_INTERNAL_IP'
+    ],
     hmr: {
       host: 'YOUR_DOMAIN',
       clientPort: 443,
