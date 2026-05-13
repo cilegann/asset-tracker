@@ -1,0 +1,14 @@
+[Unit]
+Description=Financial Tracker Web App
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/path/to/financial_tracker
+ExecStart=/path/to/financial_tracker/start_app.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
