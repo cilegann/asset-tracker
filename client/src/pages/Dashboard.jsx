@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { api, ASSET_CLASSES, fmtNum } from '../api';
@@ -65,6 +65,39 @@ export default function Dashboard() {
     color: data.color
   })).filter(d => d.value > 0);
 
+  // Rebalancing logic
+  const [targets, setTargets] = useState(() => {
+    const saved = localStorage.getItem('asset_targets_v2');
+    return saved ? JSON.parse(saved) : { stocks: 70, bonds: 30, emergencyFund: 300000 };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('asset_targets_v2', JSON.stringify(targets));
+  }, [targets]);
+
+  const rebalanceData = useMemo(() => {
+    const stocksVal = groupedDataMap['股票'].value;
+    const bondsVal = groupedDataMap['債券'].value;
+    const cashVal = groupedDataMap['現金'].value;
+    
+    const targetCashVal = Number(targets.emergencyFund) || 0;
+    const remainingValue = Math.max(0, totalValue - targetCashVal);
+    const stockRatio = Number(targets.stocks) || 0;
+    const bondRatio = Number(targets.bonds) || 0;
+    const totalRatio = stockRatio + bondRatio || 1;
+    
+    const targetStocksVal = (remainingValue * stockRatio) / totalRatio;
+    const targetBondsVal = (remainingValue * bondRatio) / totalRatio;
+
+    return [
+      { key: 'stocks', label: '股票', current: stocksVal, targetVal: targetStocksVal, ratio: targets.stocks },
+      { key: 'bonds', label: '債券', current: bondsVal, targetVal: targetBondsVal, ratio: targets.bonds },
+      { key: 'cash', label: '現金 (預備金)', current: cashVal, targetVal: targetCashVal },
+    ].map(item => ({ ...item, diff: item.targetVal - item.current }));
+  }, [targets, totalValue, groupedDataMap]);
+
+  const [isRebalanceOpen, setIsRebalanceOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,6 +132,66 @@ export default function Dashboard() {
             ? `⚠ ${holdingsWithValues.filter(h => h.twd_value == null).length} 筆尚未取得市價，未計入總值`
             : '所有持倉已計入'}
         </p>
+      </div>
+
+      {/* Rebalancing Section */}
+      <div className="card border-indigo-500/20 bg-indigo-950/5 overflow-hidden">
+        <button onClick={() => setIsRebalanceOpen(!isRebalanceOpen)}
+          className="w-full flex items-center justify-between group">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={18} className="text-indigo-400" />
+            <h3 className="text-sm font-semibold">資產再平衡建議</h3>
+          </div>
+          <div className={`text-slate-500 group-hover:text-slate-300 transition-transform duration-300 ${isRebalanceOpen ? 'rotate-180' : ''}`}>
+            <AlertCircle size={18} className="rotate-180" style={{ display: 'none' }} /> {/* dummy for layout if needed */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </button>
+        
+        {isRebalanceOpen && (
+          <div className="mt-5 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {rebalanceData.map(item => (
+                <div key={item.key} className="space-y-3 p-3 rounded-xl bg-slate-900/50 border border-slate-800/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-400">
+                      {item.key === 'cash' ? '緊急預備金目標' : `${item.label} 期望比例`}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {item.key === 'cash' ? (
+                        <input type="number" value={targets.emergencyFund}
+                          onChange={e => setTargets(prev => ({ ...prev, emergencyFund: e.target.value }))}
+                          className="w-28 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-indigo-300 text-right focus:outline-none focus:border-indigo-500" />
+                      ) : (
+                        <input type="number" value={item.ratio}
+                          onChange={e => setTargets(prev => ({ ...prev, [item.key]: e.target.value }))}
+                          className="w-12 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-indigo-300 text-center focus:outline-none focus:border-indigo-500" />
+                      )}
+                      <span className="text-xs text-slate-500">{item.key === 'cash' ? 'TWD' : '%'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">當前現值</span>
+                    <span className="text-slate-300">{fmtNum(Math.round(item.current))} TWD</span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/50">
+                    <div className="text-[10px] text-slate-500 mb-1 uppercase tracking-wider">應調整金額 (TWD)</div>
+                    <div className={`text-lg font-mono font-bold ${item.diff > 0 ? 'text-emerald-400' : item.diff < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                      {item.diff > 0 ? '+' : ''}{fmtNum(Math.round(item.diff))}
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">目標總額: {fmtNum(Math.round(item.targetVal))}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="p-3 bg-slate-900/30 rounded-lg text-[11px] text-slate-500">
+              <p>※ 邏輯：先扣除「緊急預備金」絕對值，剩餘資產再依據「股債比例」進行分配。</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chart + breakdown */}
