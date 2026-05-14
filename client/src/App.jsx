@@ -20,7 +20,7 @@ export default function App() {
             {/* Logo */}
             <div className="flex items-center gap-2.5 mr-auto sm:mr-8">
               <img src="/favicon.png" alt="Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-emerald-500/10" />
-              <span className="font-semibold text-sm text-slate-200 hidden xs:block">投資追蹤</span>
+              <span className="font-semibold text-sm text-slate-200 hidden xs:block">資產追蹤</span>
             </div>
 
             {/* Nav links */}

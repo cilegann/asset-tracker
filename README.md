@@ -1,4 +1,4 @@
-# 投資追蹤系統 · Personal Investment Tracker
+# 資產追蹤系統 · Personal Asset Tracker
 
 一個用於管理個人投資持倉、股息紀錄與現金流的工具。支援多幣別換算與自動化股息再投入記錄。
 
