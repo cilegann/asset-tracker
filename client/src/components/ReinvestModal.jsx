@@ -86,14 +86,14 @@ export default function ReinvestModal({ dividend, holdings, onSave, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">再投入金額 *</label>
-            <input className="input" type="number" step="any" min="0.01"
+            <input className="input" type="number" inputMode="decimal" step="any" min="0.01"
               max={pendingAmount} value={form.amount}
               onChange={e => set('amount', e.target.value)} required />
             <p className="text-xs text-slate-500 mt-1">可部分投入，最多 {pendingAmount.toFixed(2)}</p>
           </div>
           <div>
             <label className="label">再投入日期 *</label>
-            <input className="input" type="date" value={form.reinvest_date}
+            <input className="input" type="date" max="9999-12-31" value={form.reinvest_date}
               onChange={e => set('reinvest_date', e.target.value)} required />
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function ReinvestModal({ dividend, holdings, onSave, onClose }) {
               </div>
               <div>
                 <label className="label">增加股數</label>
-                <input className="input" type="number" step="any" min="0"
+                <input className="input" type="number" inputMode="decimal" step="any" min="0"
                   placeholder="e.g. 10" value={form.quantity_delta}
                   onChange={e => set('quantity_delta', e.target.value)} />
               </div>

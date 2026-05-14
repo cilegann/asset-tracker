@@ -6,18 +6,7 @@ import { api, ASSET_CLASSES, getAssetClass, fmtNum } from '../api';
 const FX_PAIRS = { USD: 'USD', JPY: 'JPY', EUR: 'EUR', GBP: 'GBP', HKD: 'HKD' };
 const RADIAN = Math.PI / 180;
 
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
-  if (percent < 0.04) return null;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central"
-      fontSize={11} fontWeight={600}>
-      {`${(percent * 100).toFixed(1)}%`}
-    </text>
-  );
-};
+
 
 export default function Dashboard() {
   const [holdings, setHoldings] = useState([]);
@@ -83,11 +72,28 @@ export default function Dashboard() {
   const hasAnyValue = totalValue > 0;
 
   // Group by asset class
+  const groupedDataMap = {
+    '股票': { value: 0, color: '#3b82f6' }, // blue-500
+    '債券': { value: 0, color: '#f59e0b' }, // amber-500
+    '現金': { value: 0, color: '#10b981' }  // emerald-500
+  };
+
   const chartData = ASSET_CLASSES.map(ac => {
     const items = holdingsWithValues.filter(h => h.asset_class === ac.value);
     const value = items.reduce((s, h) => s + (h.twd_value ?? 0), 0);
+    
+    if (ac.value === 'tw_stock' || ac.value === 'us_stock') groupedDataMap['股票'].value += value;
+    else if (ac.value === 'bond') groupedDataMap['債券'].value += value;
+    else if (ac.value === 'cash' || ac.value === 'forex') groupedDataMap['現金'].value += value;
+
     return { name: `${ac.emoji} ${ac.label}`, value, color: ac.color, key: ac.value };
   }).filter(d => d.value > 0);
+
+  const groupedChartData = Object.entries(groupedDataMap).map(([name, data]) => ({
+    name,
+    value: data.value,
+    color: data.color
+  })).filter(d => d.value > 0);
 
   return (
     <div className="space-y-6">
@@ -140,17 +146,23 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={110}
-                  dataKey="value" nameKey="name" labelLine={false} label={renderCustomLabel}>
+                <Pie data={groupedChartData} cx="50%" cy="50%" innerRadius={40} outerRadius={85}
+                  dataKey="value" nameKey="name" stroke="none">
+                  {groupedChartData.map((entry, index) => (
+                    <Cell key={`inner-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Pie data={chartData} cx="50%" cy="50%" innerRadius={95} outerRadius={125}
+                  dataKey="value" nameKey="name" stroke="none">
                   {chartData.map((entry) => (
-                    <Cell key={entry.key} fill={entry.color} stroke="transparent" />
+                    <Cell key={`outer-${entry.key}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value, name) => [
-                    `${fmtNum(value)} TWD (${totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0}%)`,
-                    name
-                  ]}
+                  formatter={(value, name) => {
+                    const pct = totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0;
+                    return [`${fmtNum(value)} TWD (比例: ${pct}%)`, name];
+                  }}
                   contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#e2e8f0' }}
                 />
                 <Legend
@@ -192,7 +204,7 @@ export default function Dashboard() {
                         {h.twd_value == null ? (
                           <span className="text-slate-600">
                             {fmtNum(h.quantity, 4)} 單位 · 待更新市價
-                            <input type="number" min="0" placeholder="手動輸入TWD總值"
+                            <input type="number" inputMode="decimal" min="0" placeholder="手動輸入TWD總值"
                               className="ml-2 w-28 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-300
                                 focus:outline-none focus:border-indigo-500"
                               onChange={e => setManualValues(v => ({

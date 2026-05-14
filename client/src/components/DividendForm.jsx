@@ -61,7 +61,7 @@ export default function DividendForm({ holdings, onSave, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">收到日期 *</label>
-            <input className="input" type="date" value={form.received_date}
+            <input className="input" type="date" max="9999-12-31" value={form.received_date}
               onChange={e => set('received_date', e.target.value)} required />
           </div>
           <div>
@@ -74,7 +74,7 @@ export default function DividendForm({ holdings, onSave, onClose }) {
 
         <div>
           <label className="label">股息金額 *</label>
-          <input className="input" type="number" step="any" min="0.01" placeholder="0.00"
+          <input className="input" type="number" inputMode="decimal" step="any" min="0.01" placeholder="0.00"
             value={form.amount} onChange={e => set('amount', e.target.value)} required />
         </div>
 

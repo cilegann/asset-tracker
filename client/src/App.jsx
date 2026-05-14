@@ -7,7 +7,7 @@ import Dividends from './pages/Dividends';
 const NAV = [
   { to: '/',         label: '總覽',     Icon: LayoutDashboard },
   { to: '/holdings', label: '持倉管理', Icon: BarChart2 },
-  { to: '/dividends',label: '股息紀錄', Icon: DollarSign },
+  { to: '/dividends',label: '現金流紀錄', Icon: DollarSign },
 ];
 
 export default function App() {

@@ -86,13 +86,13 @@ export default function PoolReinvestModal({ currency, sourceTicker, maxAmount, h
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">再投入金額 *</label>
-            <input className="input" type="number" step="any" min="0.01"
+            <input className="input" type="number" inputMode="decimal" step="any" min="0.01"
               max={maxAmount} value={form.amount}
               onChange={e => set('amount', e.target.value)} required />
           </div>
           <div>
             <label className="label">再投入日期 *</label>
-            <input className="input" type="date" value={form.reinvest_date}
+            <input className="input" type="date" max="9999-12-31" value={form.reinvest_date}
               onChange={e => set('reinvest_date', e.target.value)} required />
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function PoolReinvestModal({ currency, sourceTicker, maxAmount, h
               </div>
               <div>
                 <label className="label">增加股數</label>
-                <input className="input" type="number" step="any" min="0"
+                <input className="input" type="number" inputMode="decimal" step="any" min="0"
                   placeholder="e.g. 10" value={form.quantity_delta}
                   onChange={e => set('quantity_delta', e.target.value)} />
               </div>

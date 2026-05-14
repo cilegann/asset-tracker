@@ -46,13 +46,13 @@ export default function AdjustQuantityModal({ holding, onSave, onClose }) {
         {mode === 'set' ? (
           <div>
             <label className="label">新的持有數量</label>
-            <input className="input" type="number" step="any" min="0" value={newQty}
+            <input className="input" type="number" inputMode="decimal" step="any" min="0" value={newQty}
               onChange={e => setNewQty(e.target.value)} required />
           </div>
         ) : (
           <div>
             <label className="label">{mode === 'buy' ? '買入數量' : '賣出數量'}</label>
-            <input className="input" type="number" step="any" min="0.001" value={delta}
+            <input className="input" type="number" inputMode="decimal" step="any" min="0.001" value={delta}
               onChange={e => setDelta(e.target.value)} required />
           </div>
         )}

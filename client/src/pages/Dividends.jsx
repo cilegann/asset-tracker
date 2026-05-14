@@ -129,7 +129,7 @@ export default function Dividends() {
   };
 
   const handleDeleteDividend = async (id) => {
-    if (!confirm('確定刪除這筆股息紀錄？')) return;
+    if (!confirm('確定刪除這筆紀錄？')) return;
     await api.deleteDividend(id);
     fetchAll();
   };
@@ -181,7 +181,7 @@ export default function Dividends() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: '累計股息', value: totalReceived, color: 'text-slate-200', icon: <DollarSign size={16} /> },
+          { label: '累計收益', value: totalReceived, color: 'text-slate-200', icon: <DollarSign size={16} /> },
           { label: '待再投入', value: totalPending, color: 'text-amber-400', icon: <Clock size={16} /> },
           { label: '已再投入', value: totalReinvested, color: 'text-emerald-400', icon: <CheckCircle2 size={16} /> },
         ].map(s => (
@@ -202,7 +202,7 @@ export default function Dividends() {
         <div className="card space-y-4">
           <div className="flex items-center gap-2">
             <BarChart2 size={16} className="text-indigo-400" />
-            <h3 className="text-sm font-semibold text-indigo-300">各持股累計股息</h3>
+            <h3 className="text-sm font-semibold text-indigo-300">各標的累計收益</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {sortedTickers.map(t => (
@@ -267,7 +267,7 @@ export default function Dividends() {
       {/* Header + filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <h2 className="text-lg font-semibold">股息紀錄</h2>
+          <h2 className="text-lg font-semibold">現金流紀錄</h2>
           <div className="flex gap-1 overflow-x-auto pb-2 sm:pb-0 sm:ml-2 no-scrollbar">
             {[['all','全部'], ['pending','待投入'], ['partial','部分'], ['reinvested','已投入']].map(([v,l]) => (
               <button key={v} onClick={() => setFilterStatus(v)}
@@ -279,7 +279,7 @@ export default function Dividends() {
           </div>
         </div>
         <button className="btn-primary w-full sm:w-auto justify-center" onClick={() => setShowForm(true)}>
-          <Plus size={16} /> 新增股息
+          <Plus size={16} /> 新增紀錄
         </button>
       </div>
 
@@ -287,7 +287,7 @@ export default function Dividends() {
       {filtered.length === 0 ? (
         <div className="card text-center py-16 text-slate-500">
           <DollarSign className="mx-auto mb-3 opacity-30" size={40} />
-          <p>尚無股息紀錄</p>
+          <p>尚無紀錄</p>
         </div>
       ) : (
         <div className="card p-0 overflow-x-auto">
@@ -295,7 +295,7 @@ export default function Dividends() {
             <thead>
               <tr className="border-b border-slate-700/70 text-xs text-slate-500">
                 <th className="text-left px-4 py-3">標的 / 日期</th>
-                <th className="text-right px-4 py-3">股息金額</th>
+                <th className="text-right px-4 py-3">收益金額</th>
                 <th className="text-right px-4 py-3">待投入</th>
                 <th className="text-left px-4 py-3">狀態</th>
                 <th className="px-4 py-3"></th>

@@ -91,12 +91,12 @@ export default function HoldingForm({ holding, onSave, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">持有數量 *</label>
-            <input className="input" type="number" step="any" min="0" placeholder="0" value={form.quantity}
+            <input className="input" type="number" inputMode="decimal" step="any" min="0" placeholder="0" value={form.quantity}
               onChange={e => set('quantity', e.target.value)} required />
           </div>
           <div>
             <label className="label">平均成本</label>
-            <input className="input" type="number" step="any" min="0" placeholder="選填" value={form.avg_cost}
+            <input className="input" type="number" inputMode="decimal" step="any" min="0" placeholder="選填" value={form.avg_cost}
               onChange={e => set('avg_cost', e.target.value)} />
           </div>
         </div>
