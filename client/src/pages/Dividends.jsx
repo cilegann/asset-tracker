@@ -3,7 +3,7 @@ import {
   Plus, Trash2, DollarSign, RefreshCw, CheckCircle2, Clock,
   BarChart2, ArrowUpDown, TrendingUp, TrendingDown, ArrowRight,
 } from 'lucide-react';
-import { api, fmtNum } from '../api';
+import { api, fmtNum, getAssetClass } from '../api';
 import DividendForm from '../components/DividendForm';
 import PoolReinvestModal from '../components/PoolReinvestModal';
 
@@ -28,9 +28,12 @@ function CashflowRow({ flow, onDeleteDividend, onDeleteReinvestment }) {
             </span>
           )}
           <div>
-            <div className="font-semibold text-sm">{flow.ticker}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs">{getAssetClass(flow.asset_class).emoji}</span>
+              <div className="font-semibold text-sm">{flow.ticker}</div>
+            </div>
             {!isDividend && flow.source_ticker && (
-              <div className="text-[10px] text-slate-500 flex items-center gap-0.5">
+              <div className="text-[10px] text-slate-500 flex items-center gap-0.5 ml-4">
                 來自 {flow.source_ticker} <ArrowRight size={8} />
               </div>
             )}
@@ -87,7 +90,10 @@ function TickerCard({ t, selected, disabled, onToggle, getHoldingName }) {
           <CheckCircle2 size={10} className="text-white" />
         </span>
       )}
-      <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">{t.ticker}</span>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-xs">{getAssetClass(t.asset_class).emoji}</span>
+        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">{t.ticker}</span>
+      </div>
       <span className="text-[10px] text-slate-600 truncate mb-2" title={getHoldingName(t.ticker)}>
         {getHoldingName(t.ticker) || <span className="italic">—</span>}
       </span>
@@ -165,7 +171,7 @@ export default function Dividends() {
   // ── Ticker summary data ──
   const tickerMap = dividends.reduce((acc, d) => {
     const key = `${d.ticker}-${d.currency}`;
-    if (!acc[key]) acc[key] = { ticker: d.ticker, currency: d.currency, total: 0, pending: 0 };
+    if (!acc[key]) acc[key] = { ticker: d.ticker, currency: d.currency, asset_class: d.asset_class, total: 0, pending: 0 };
     acc[key].total += d.amount;
     acc[key].pending += d.pending_amount ?? 0;
     return acc;

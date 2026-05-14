@@ -76,7 +76,12 @@ export default function HoldingForm({ holding, onSave, onClose }) {
           <div className="grid grid-cols-5 gap-1.5">
             {ASSET_CLASSES.map(ac => (
               <button key={ac.value} type="button"
-                onClick={() => set('asset_class', ac.value)}
+                onClick={() => {
+                  set('asset_class', ac.value);
+                  // Auto-suggest currency based on asset class
+                  if (ac.value === 'tw_stock') set('currency', 'TWD');
+                  if (ac.value === 'us_stock') set('currency', 'USD');
+                }}
                 className={`flex flex-col items-center gap-1 py-2 rounded-xl border text-xs font-medium transition-all
                   ${form.asset_class === ac.value
                     ? 'border-indigo-500 bg-indigo-600/20 text-indigo-300'

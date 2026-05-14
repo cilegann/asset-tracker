@@ -60,8 +60,11 @@ export default function Dashboard() {
   const computeValue = (h) => {
     if (manualValues[h.id] != null) return manualValues[h.id];
     const fxRate = h.currency === 'TWD' ? 1 : (fxRates[h.currency] ?? null);
-    if (h.asset_class === 'cash') return h.quantity * (fxRate ?? 1);
-    if (h.asset_class === 'forex') return h.quantity * (fxRate ?? 1);
+    
+    if (h.asset_class === 'cash' || h.asset_class === 'forex') {
+      return fxRate ? h.quantity * fxRate : null;
+    }
+    
     const price = prices[h.ticker];
     if (price == null || fxRate == null) return null;
     return h.quantity * price * fxRate;

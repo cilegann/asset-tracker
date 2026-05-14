@@ -19,9 +19,7 @@ export default function App() {
           <div className="max-w-6xl mx-auto px-4 flex items-center h-14">
             {/* Logo */}
             <div className="flex items-center gap-2.5 mr-auto sm:mr-8">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold">
-                📈
-              </div>
+              <img src="/favicon.png" alt="Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-emerald-500/10" />
               <span className="font-semibold text-sm text-slate-200 hidden xs:block">投資追蹤</span>
             </div>
 

@@ -164,9 +164,10 @@ app.delete('/api/holdings/:id', (req, res) => {
 // GET all dividends (with reinvestments joined)
 app.get('/api/dividends', (req, res) => {
   const dividends = db.prepare(`
-    SELECT d.*, 
+    SELECT d.*, h.asset_class,
       COALESCE(SUM(r.amount), 0) as reinvested_amount
     FROM dividends d
+    LEFT JOIN holdings h ON d.holding_id = h.id
     LEFT JOIN reinvestments r ON r.dividend_id = d.id
     GROUP BY d.id
     ORDER BY d.received_date DESC
@@ -183,8 +184,9 @@ app.get('/api/dividends', (req, res) => {
 // GET unified cashflow: dividends + reinvestments merged and sorted by date
 app.get('/api/cashflow', (req, res) => {
   const dividends = db.prepare(`
-    SELECT d.*, COALESCE(SUM(r.amount), 0) as reinvested_amount
+    SELECT d.*, h.asset_class, COALESCE(SUM(r.amount), 0) as reinvested_amount
     FROM dividends d
+    LEFT JOIN holdings h ON d.holding_id = h.id
     LEFT JOIN reinvestments r ON r.dividend_id = d.id
     GROUP BY d.id
   `).all();
@@ -194,6 +196,7 @@ app.get('/api/cashflow', (req, res) => {
     type: 'dividend',
     date: d.received_date,
     ticker: d.ticker,
+    asset_class: d.asset_class,
     amount: d.amount,
     currency: d.currency,
     note: d.note,
@@ -214,6 +217,7 @@ app.get('/api/cashflow', (req, res) => {
     date: r.reinvest_date,
     ticker: r.target_ticker,
     source_ticker: r.source_ticker,
+    asset_class: 'reinvest',
     amount: -r.amount,
     currency: r.currency,
     note: r.note,
