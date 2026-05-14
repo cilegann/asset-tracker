@@ -271,7 +271,9 @@ export default function Dividends() {
                     </div>
                   </div>
                   <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                    {Object.entries(data.tickers).map(([ticker, amt]) => (
+                    {Object.entries(data.tickers)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([ticker, amt]) => (
                       <div key={ticker} className="flex items-center justify-between text-xs text-slate-400 hover:text-slate-300 p-1 -mx-1 rounded hover:bg-slate-800/50 transition-colors">
                         <label className="flex items-center gap-2 cursor-pointer flex-1">
                           <input type="checkbox" 
