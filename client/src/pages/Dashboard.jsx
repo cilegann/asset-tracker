@@ -144,35 +144,65 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={groupedChartData} cx="50%" cy="50%" innerRadius={40} outerRadius={85}
-                  dataKey="value" nameKey="name" stroke="none">
-                  {groupedChartData.map((entry, index) => (
-                    <Cell key={`inner-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={95} outerRadius={125}
-                  dataKey="value" nameKey="name" stroke="none">
-                  {chartData.map((entry) => (
-                    <Cell key={`outer-${entry.key}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => {
-                    const pct = totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0;
-                    return [`${fmtNum(value)} TWD (比例: ${pct}%)`, name];
-                  }}
-                  contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#e2e8f0' }}
-                />
-                <Legend
-                  formatter={(value, entry) => {
-                    const pct = totalValue > 0 && entry.payload.value ? ((entry.payload.value / totalValue) * 100).toFixed(1) : 0;
-                    return <span style={{ color: '#94a3b8', fontSize: 12 }}>{value} ({pct}%)</span>;
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  {/* 子項目 (內圈) */}
+                  <Pie data={chartData} cx="50%" cy="50%" innerRadius={35} outerRadius={70}
+                    dataKey="value" nameKey="name" stroke="none">
+                    {chartData.map((entry) => (
+                      <Cell key={`inner-${entry.key}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  {/* 大類別 (外圈) */}
+                  <Pie data={groupedChartData} cx="50%" cy="50%" innerRadius={80} outerRadius={115}
+                    dataKey="value" nameKey="name" stroke="none">
+                    {groupedChartData.map((entry, index) => (
+                      <Cell key={`outer-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name) => {
+                      const pct = totalValue > 0 ? ((value / totalValue) * 100).toFixed(1) : 0;
+                      return [`${fmtNum(value)} TWD (比例: ${pct}%)`, name];
+                    }}
+                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#e2e8f0' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* 自訂圖例 */}
+              <div className="mt-4 space-y-4 px-2">
+                <div>
+                  <div className="text-xs text-slate-500 mb-2 border-b border-slate-700/50 pb-1">大類別</div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {groupedChartData.map(entry => {
+                      const pct = totalValue > 0 ? ((entry.value / totalValue) * 100).toFixed(1) : 0;
+                      return (
+                        <div key={entry.name} className="flex items-center text-xs">
+                          <span className="w-2.5 h-2.5 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: entry.color }} />
+                          <span className="text-slate-300">{entry.name} ({pct}%)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2 border-b border-slate-700/50 pb-1">子項目</div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {chartData.map(entry => {
+                      const pct = totalValue > 0 ? ((entry.value / totalValue) * 100).toFixed(1) : 0;
+                      return (
+                        <div key={entry.name} className="flex items-center text-xs">
+                          <span className="w-2.5 h-2.5 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: entry.color }} />
+                          <span className="text-slate-300">{entry.name} ({pct}%)</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
