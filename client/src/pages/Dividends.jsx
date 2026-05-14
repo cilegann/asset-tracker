@@ -264,7 +264,7 @@ export default function Dividends() {
                           </span>
                         )}
                       </div>
-                      <button onClick={() => setPoolModalState({ currency, maxAmount: selectedSum > 0 ? selectedSum : data.total })} 
+                      <button onClick={() => setPoolModalState({ currency, maxAmount: selectedSum > 0 ? selectedSum : data.total, sourceTickers: selectedSum > 0 ? selectedTickers : null })} 
                         className="btn-success py-1 px-2 text-xs">
                         <RefreshCw size={11} /> 合併再投入
                       </button>
@@ -365,6 +365,7 @@ export default function Dividends() {
         <PoolReinvestModal
           currency={poolModalState.currency}
           sourceTicker={poolModalState.sourceTicker}
+          sourceTickers={poolModalState.sourceTickers}
           maxAmount={poolModalState.maxAmount}
           holdings={holdings}
           onSave={handlePoolReinvest}

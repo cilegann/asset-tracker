@@ -222,19 +222,31 @@ app.post('/api/dividends/:id/reinvestments', (req, res) => {
 
 // POST auto reinvest from pool of dividends (smallest pending first)
 app.post('/api/reinvestments/auto', (req, res) => {
-  const { currency, source_ticker, target_ticker, amount, reinvest_date, note, update_holding } = req.body;
+  const { currency, source_ticker, source_tickers, target_ticker, amount, reinvest_date, note, update_holding } = req.body;
   if (!currency || !target_ticker || !amount || !reinvest_date)
     return res.status(400).json({ error: 'currency, target_ticker, amount, reinvest_date are required' });
 
-  // Get all pending dividends for this currency (and optional source_ticker)
-  const query = `
+  // Get all pending dividends for this currency (and optional source_ticker/source_tickers)
+  let query = `
     SELECT d.id, d.amount, d.ticker, COALESCE(SUM(r.amount), 0) as reinvested_amount
     FROM dividends d
     LEFT JOIN reinvestments r ON r.dividend_id = d.id
-    WHERE d.currency = ? AND d.status != 'reinvested' ${source_ticker ? "AND d.ticker = ?" : ""}
-    GROUP BY d.id
+    WHERE d.currency = ? AND d.status != 'reinvested'
   `;
-  const dividends = source_ticker ? db.prepare(query).all(currency, source_ticker) : db.prepare(query).all(currency);
+  const params = [currency];
+
+  if (source_tickers && Array.isArray(source_tickers) && source_tickers.length > 0) {
+    const placeholders = source_tickers.map(() => '?').join(',');
+    query += ` AND d.ticker IN (${placeholders})`;
+    params.push(...source_tickers);
+  } else if (source_ticker) {
+    query += ` AND d.ticker = ?`;
+    params.push(source_ticker);
+  }
+
+  query += ` GROUP BY d.id`;
+  
+  const dividends = db.prepare(query).all(...params);
 
   const pendingDividends = dividends.map(d => ({
     ...d,

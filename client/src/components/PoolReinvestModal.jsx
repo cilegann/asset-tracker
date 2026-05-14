@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 
-export default function PoolReinvestModal({ currency, sourceTicker, maxAmount, holdings, onSave, onClose }) {
+export default function PoolReinvestModal({ currency, sourceTicker, sourceTickers, maxAmount, holdings, onSave, onClose }) {
   const [form, setForm] = useState({
     target_ticker: sourceTicker ?? '',
     amount: maxAmount.toFixed(2),
@@ -33,6 +33,7 @@ export default function PoolReinvestModal({ currency, sourceTicker, maxAmount, h
       const payload = {
         currency,
         source_ticker: sourceTicker, // Optional: restricts to this ticker's dividends
+        source_tickers: sourceTickers, // Array of tickers for multi-select
         target_ticker: form.target_ticker.toUpperCase(),
         amount: amt,
         reinvest_date: form.reinvest_date,
@@ -53,13 +54,21 @@ export default function PoolReinvestModal({ currency, sourceTicker, maxAmount, h
     }
   };
 
+  const modalTitle = sourceTickers && sourceTickers.length > 0 
+    ? `合併再投入 (已選 ${sourceTickers.length} 檔)` 
+    : (sourceTicker ? `合併再投入 — ${sourceTicker}` : `合併再投入 (${currency})`);
+
   return (
-    <Modal title={sourceTicker ? `合併再投入 — ${sourceTicker}` : `合併再投入 (${currency})`} onClose={onClose}>
+    <Modal title={modalTitle} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Info bar */}
         <div className="bg-slate-900 rounded-xl p-3 text-sm flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-xs">{sourceTicker ? `${sourceTicker} 待投入餘額` : '可用資金池總額'}</p>
+            <p className="text-slate-500 text-xs">
+              {sourceTickers && sourceTickers.length > 0 
+                ? '已選標的待投入餘額' 
+                : (sourceTicker ? `${sourceTicker} 待投入餘額` : '可用資金池總額')}
+            </p>
             <p className="font-semibold text-amber-400">{maxAmount.toLocaleString()} {currency}</p>
           </div>
           <p className="text-xs text-slate-500 max-w-[50%] text-right">
