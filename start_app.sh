@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Path to the project root
-PROJECT_ROOT="/path/to/financial_tracker"
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Kill any existing processes on these ports (optional but helpful for restarts)
 fuser -k 9457/tcp 2>/dev/null
