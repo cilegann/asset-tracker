@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 9458;
 app.use(cors());
 app.use(express.json());
 
+// ── Validation Helpers ────────────────────────────────────────────────────────
+const isInvalidNum = (val) => val === null || val === undefined || isNaN(parseFloat(val)) || !isFinite(val);
+const sanitizeSymbol = (sym) => (sym || '').toString().toUpperCase().replace(/[^A-Z0-9.\-=]/g, '').slice(0, 20);
+
 // ── TWSE/TPEx Stock Name Cache ───────────────────────────────────────────────
 let twStockCache = null;
 let twStockCacheTime = 0;
@@ -57,48 +61,64 @@ app.get('/api/holdings', (req, res) => {
 app.post('/api/holdings', (req, res) => {
   const { ticker, name, asset_class, quantity, avg_cost, currency, note } = req.body;
   if (!ticker || !asset_class) return res.status(400).json({ error: 'ticker and asset_class are required' });
+  
+  if (quantity !== undefined && isInvalidNum(quantity)) return res.status(400).json({ error: 'Invalid quantity' });
+  if (avg_cost !== undefined && avg_cost !== null && isInvalidNum(avg_cost)) return res.status(400).json({ error: 'Invalid avg_cost' });
 
   const upperTicker = ticker.toUpperCase();
-  const existing = db.prepare('SELECT * FROM holdings WHERE ticker = ?').get(upperTicker);
+  
+  const result = db.transaction(() => {
+    const existing = db.prepare('SELECT * FROM holdings WHERE ticker = ?').get(upperTicker);
 
-  if (existing) {
-    // Merge with existing
-    const oldQty = existing.quantity || 0;
-    const oldCost = existing.avg_cost || 0;
-    const newQty = quantity || 0;
-    const newCost = avg_cost || 0;
-    
-    let combinedAvgCost = existing.avg_cost;
-    if (oldQty + newQty > 0 && (existing.avg_cost !== null || avg_cost !== null)) {
-      combinedAvgCost = ((oldQty * oldCost) + (newQty * newCost)) / (oldQty + newQty);
+    if (existing) {
+      // Merge with existing
+      const oldQty = existing.quantity || 0;
+      const oldCost = existing.avg_cost || 0;
+      const newQty = parseFloat(quantity) || 0;
+      const newCost = parseFloat(avg_cost) || 0;
+      
+      let combinedAvgCost = existing.avg_cost;
+      // Only recalculate average cost if a positive cost was provided for the new shares
+      if (newQty > 0 && newCost > 0) {
+        if (oldQty > 0 && oldCost > 0) {
+          combinedAvgCost = ((oldQty * oldCost) + (newQty * newCost)) / (oldQty + newQty);
+        } else {
+          combinedAvgCost = newCost;
+        }
+      }
+
+      db.prepare(`
+        UPDATE holdings SET 
+          quantity = ?, avg_cost = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).run(oldQty + newQty, combinedAvgCost, existing.id);
+
+      return { id: existing.id, status: 200 };
     }
 
-    db.prepare(`
-      UPDATE holdings SET 
-        quantity = ?, avg_cost = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(oldQty + newQty, combinedAvgCost, existing.id);
+    const stmt = db.prepare(`
+      INSERT INTO holdings (ticker, name, asset_class, quantity, avg_cost, currency, note)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertRes = stmt.run(
+      upperTicker, name || '', asset_class,
+      quantity ?? 0, avg_cost ?? null,
+      currency || 'TWD', note || ''
+    );
+    return { id: insertRes.lastInsertRowid, status: 201 };
+  })();
 
-    const row = db.prepare('SELECT * FROM holdings WHERE id = ?').get(existing.id);
-    return res.status(200).json(row);
-  }
-
-  const stmt = db.prepare(`
-    INSERT INTO holdings (ticker, name, asset_class, quantity, avg_cost, currency, note)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-  const result = stmt.run(
-    upperTicker, name || '', asset_class,
-    quantity ?? 0, avg_cost ?? null,
-    currency || 'TWD', note || ''
-  );
-  const row = db.prepare('SELECT * FROM holdings WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(row);
+  const row = db.prepare('SELECT * FROM holdings WHERE id = ?').get(result.id);
+  res.status(result.status).json(row);
 });
 
 // PUT update holding
 app.put('/api/holdings/:id', (req, res) => {
   const { ticker, name, asset_class, quantity, avg_cost, currency, note } = req.body;
+  
+  if (quantity !== undefined && isInvalidNum(quantity)) return res.status(400).json({ error: 'Invalid quantity' });
+  if (avg_cost !== undefined && avg_cost !== null && isInvalidNum(avg_cost)) return res.status(400).json({ error: 'Invalid avg_cost' });
+
   const existing = db.prepare('SELECT * FROM holdings WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Not found' });
 
@@ -119,10 +139,14 @@ app.put('/api/holdings/:id', (req, res) => {
 // PATCH update holding quantity (buy/sell)
 app.patch('/api/holdings/:id/quantity', (req, res) => {
   const { delta } = req.body; // positive = buy, negative = sell
+  if (isInvalidNum(delta)) return res.status(400).json({ error: 'Invalid delta' });
+
   const existing = db.prepare('SELECT * FROM holdings WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Not found' });
 
-  const newQty = existing.quantity + (delta ?? 0);
+  const newQty = existing.quantity + parseFloat(delta);
+  if (newQty < 0) return res.status(400).json({ error: 'Insufficient quantity' });
+
   db.prepare(`UPDATE holdings SET quantity = ?, updated_at = datetime('now') WHERE id = ?`)
     .run(newQty, req.params.id);
   res.json(db.prepare('SELECT * FROM holdings WHERE id = ?').get(req.params.id));
@@ -206,6 +230,8 @@ app.post('/api/dividends', (req, res) => {
   const { holding_id, ticker, received_date, amount, currency, note } = req.body;
   if (!ticker || !received_date || amount == null)
     return res.status(400).json({ error: 'ticker, received_date, amount are required' });
+  
+  if (isInvalidNum(amount) || amount < 0) return res.status(400).json({ error: 'Invalid amount' });
 
   const result = db.prepare(`
     INSERT INTO dividends (holding_id, ticker, received_date, amount, currency, note)
@@ -369,18 +395,14 @@ app.delete('/api/reinvestments/:id', (req, res) => {
 // ── Market Data API (Yahoo Finance proxy) ─────────────────────────────────────
 
 app.get('/api/market/price', async (req, res) => {
-  const { symbol } = req.query;
+  const symbol = sanitizeSymbol(req.query.symbol);
   if (!symbol) return res.status(400).json({ error: 'symbol required' });
 
   const fetchYahoo = async (sym) => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d&lang=zh-Hant&region=TW`;
     return axios.get(url, {
       headers: { 
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Referer': 'https://finance.yahoo.com/'
       },
       timeout: 8000
@@ -392,8 +414,8 @@ app.get('/api/market/price', async (req, res) => {
     try {
       response = await fetchYahoo(symbol);
     } catch (err) {
-      if (err.response?.status === 404 && symbol.toUpperCase().endsWith('.TW')) {
-        const fallbackSymbol = symbol.toUpperCase().replace('.TW', '.TWO');
+      if (err.response?.status === 404 && symbol.endsWith('.TW')) {
+        const fallbackSymbol = symbol.replace('.TW', '.TWO');
         response = await fetchYahoo(fallbackSymbol);
       } else {
         throw err;
@@ -429,15 +451,13 @@ app.get('/api/market/price', async (req, res) => {
 });
 
 app.get('/api/market/search', async (req, res) => {
-  const { symbol } = req.query;
+  const symbol = sanitizeSymbol(req.query.symbol);
   if (!symbol) return res.status(400).json({ error: 'symbol required' });
 
-  const upperSymbol = symbol.toUpperCase();
-
-  // 1. Try Taiwan stock local cache if it's a TW stock (ends with .TW/.TWO or is a 4-6 digit number)
-  const isNumeric = /^\d{4,6}$/.test(upperSymbol);
-  if (upperSymbol.endsWith('.TW') || upperSymbol.endsWith('.TWO') || isNumeric) {
-    const cleanSymbol = upperSymbol.replace('.TW', '').replace('.TWO', '');
+  // 1. Try Taiwan stock local cache
+  const isNumeric = /^\d{4,6}$/.test(symbol);
+  if (symbol.endsWith('.TW') || symbol.endsWith('.TWO') || isNumeric) {
+    const cleanSymbol = symbol.replace('.TW', '').replace('.TWO', '');
     const map = await getTwStocks();
     if (map.has(cleanSymbol)) {
       return res.json({ name: map.get(cleanSymbol) });
@@ -446,7 +466,7 @@ app.get('/api/market/search', async (req, res) => {
 
   // 2. Fallback to Yahoo Finance
   try {
-    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(upperSymbol)}&lang=zh-Hant&region=TW&quotesCount=1`;
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&lang=zh-Hant&region=TW&quotesCount=1`;
     const response = await axios.get(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
       timeout: 8000
@@ -454,7 +474,6 @@ app.get('/api/market/search', async (req, res) => {
     const quote = response.data?.quotes?.[0];
     if (!quote) return res.json({ name: '' });
     
-    // Prioritize longname for Chinese results
     res.json({ name: quote.longname || quote.shortname || '' });
   } catch (err) {
     res.status(502).json({ error: 'Failed to search market data', detail: err.message });

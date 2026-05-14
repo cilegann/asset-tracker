@@ -16,8 +16,8 @@ db.exec(`
     ticker      TEXT    NOT NULL,
     name        TEXT    NOT NULL DEFAULT '',
     asset_class TEXT    NOT NULL CHECK(asset_class IN ('tw_stock','us_stock','bond','forex','cash')),
-    quantity    REAL    NOT NULL DEFAULT 0,
-    avg_cost    REAL,
+    quantity    REAL    NOT NULL DEFAULT 0 CHECK(quantity >= -1000000), -- Allow some negative for shorting if needed, but usually positive
+    avg_cost    REAL    CHECK(avg_cost >= 0),
     currency    TEXT    NOT NULL DEFAULT 'TWD',
     note        TEXT    DEFAULT '',
     created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -29,7 +29,7 @@ db.exec(`
     holding_id      INTEGER REFERENCES holdings(id) ON DELETE SET NULL,
     ticker          TEXT    NOT NULL,
     received_date   TEXT    NOT NULL,
-    amount          REAL    NOT NULL,
+    amount          REAL    NOT NULL CHECK(amount >= 0),
     currency        TEXT    NOT NULL DEFAULT 'TWD',
     status          TEXT    NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','partial','reinvested')),
     note            TEXT    DEFAULT '',
@@ -40,7 +40,7 @@ db.exec(`
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     dividend_id     INTEGER NOT NULL REFERENCES dividends(id) ON DELETE CASCADE,
     target_ticker   TEXT    NOT NULL,
-    amount          REAL    NOT NULL,
+    amount          REAL    NOT NULL CHECK(amount >= 0),
     reinvest_date   TEXT    NOT NULL,
     note            TEXT    DEFAULT '',
     created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
