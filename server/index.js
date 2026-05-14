@@ -22,7 +22,7 @@ async function getTwStocks() {
   if (twStockCache && (now - twStockCacheTime < 1000 * 60 * 60 * 12)) {
     return twStockCache;
   }
-  
+
   const map = new Map();
   try {
     const twseRes = await axios.get('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', { timeout: 8000 });
@@ -61,12 +61,12 @@ app.get('/api/holdings', (req, res) => {
 app.post('/api/holdings', (req, res) => {
   const { ticker, name, asset_class, quantity, avg_cost, currency, note } = req.body;
   if (!ticker || !asset_class) return res.status(400).json({ error: 'ticker and asset_class are required' });
-  
+
   if (quantity !== undefined && isInvalidNum(quantity)) return res.status(400).json({ error: 'Invalid quantity' });
   if (avg_cost !== undefined && avg_cost !== null && isInvalidNum(avg_cost)) return res.status(400).json({ error: 'Invalid avg_cost' });
 
   const upperTicker = ticker.toUpperCase();
-  
+
   const result = db.transaction(() => {
     const existing = db.prepare('SELECT * FROM holdings WHERE ticker = ?').get(upperTicker);
 
@@ -76,7 +76,7 @@ app.post('/api/holdings', (req, res) => {
       const oldCost = existing.avg_cost || 0;
       const newQty = parseFloat(quantity) || 0;
       const newCost = parseFloat(avg_cost) || 0;
-      
+
       let combinedAvgCost = existing.avg_cost;
       // Only recalculate average cost if a positive cost was provided for the new shares
       if (newQty > 0 && newCost > 0) {
@@ -88,7 +88,7 @@ app.post('/api/holdings', (req, res) => {
       }
 
       db.prepare(`
-        UPDATE holdings SET 
+        UPDATE holdings SET
           quantity = ?, avg_cost = ?, updated_at = datetime('now')
         WHERE id = ?
       `).run(oldQty + newQty, combinedAvgCost, existing.id);
@@ -115,7 +115,7 @@ app.post('/api/holdings', (req, res) => {
 // PUT update holding
 app.put('/api/holdings/:id', (req, res) => {
   const { ticker, name, asset_class, quantity, avg_cost, currency, note } = req.body;
-  
+
   if (quantity !== undefined && isInvalidNum(quantity)) return res.status(400).json({ error: 'Invalid quantity' });
   if (avg_cost !== undefined && avg_cost !== null && isInvalidNum(avg_cost)) return res.status(400).json({ error: 'Invalid avg_cost' });
 
@@ -234,7 +234,7 @@ app.post('/api/dividends', (req, res) => {
   const { holding_id, ticker, received_date, amount, currency, note } = req.body;
   if (!ticker || !received_date || amount == null)
     return res.status(400).json({ error: 'ticker, received_date, amount are required' });
-  
+
   if (isInvalidNum(amount) || amount < 0) return res.status(400).json({ error: 'Invalid amount' });
 
   const result = db.prepare(`
@@ -320,7 +320,7 @@ app.post('/api/reinvestments/auto', (req, res) => {
   }
 
   query += ` GROUP BY d.id`;
-  
+
   const dividends = db.prepare(query).all(...params);
 
   const pendingDividends = dividends.map(d => ({
@@ -348,7 +348,7 @@ app.post('/api/reinvestments/auto', (req, res) => {
         INSERT INTO reinvestments (dividend_id, target_ticker, amount, reinvest_date, note)
         VALUES (?, ?, ?, ?, ?)
       `).run(d.id, target_ticker.toUpperCase(), deductAmount, reinvest_date, note || '');
-      
+
       createdIds.push(result.lastInsertRowid);
       amountNeeded -= deductAmount;
 
@@ -405,7 +405,7 @@ app.get('/api/market/price', async (req, res) => {
   const fetchYahoo = async (sym) => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d&lang=zh-Hant&region=TW`;
     return axios.get(url, {
-      headers: { 
+      headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Referer': 'https://finance.yahoo.com/'
       },
@@ -425,12 +425,12 @@ app.get('/api/market/price', async (req, res) => {
         throw err;
       }
     }
-    
+
     const meta = response.data?.chart?.result?.[0]?.meta;
     if (!meta) return res.status(502).json({ error: 'No data from Yahoo Finance' });
 
     let displayName = meta.shortName || meta.longName || '';
-    
+
     // ── Try to get Chinese name for Taiwan stocks ──
     const upperSym = (meta.symbol || symbol).toUpperCase();
     if (upperSym.endsWith('.TW') || upperSym.endsWith('.TWO')) {
@@ -477,7 +477,7 @@ app.get('/api/market/search', async (req, res) => {
     });
     const quote = response.data?.quotes?.[0];
     if (!quote) return res.json({ name: '' });
-    
+
     res.json({ name: quote.longname || quote.shortname || '' });
   } catch (err) {
     res.status(502).json({ error: 'Failed to search market data', detail: err.message });
