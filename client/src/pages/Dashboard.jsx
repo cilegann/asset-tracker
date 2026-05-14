@@ -1,19 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
-import { api, ASSET_CLASSES, getAssetClass, fmtNum } from '../api';
+import { api, ASSET_CLASSES, fmtNum } from '../api';
+import { useMarket } from '../contexts/MarketContext';
 
 const FX_PAIRS = { USD: 'USD', JPY: 'JPY', EUR: 'EUR', GBP: 'GBP', HKD: 'HKD' };
 const RADIAN = Math.PI / 180;
 
-
-
 export default function Dashboard() {
   const [holdings, setHoldings] = useState([]);
-  const [prices, setPrices] = useState({});
-  const [fxRates, setFxRates] = useState({ USD: null, JPY: null, EUR: null, GBP: null, HKD: null });
+  const { prices, fxRates, loading: fetching, refreshMarketData } = useMarket();
   const [manualValues, setManualValues] = useState({});
-  const [fetching, setFetching] = useState(false);
   const [errors, setErrors] = useState([]);
 
   const fetchHoldings = useCallback(async () => {
@@ -24,39 +21,9 @@ export default function Dashboard() {
   useEffect(() => { fetchHoldings(); }, [fetchHoldings]);
 
   const fetchAllPrices = async () => {
-    if (holdings.length === 0) return;
-    setFetching(true);
-    setErrors([]);
-    const newPrices = { ...prices };
-    const newFx = { ...fxRates };
-    const errs = [];
-
-    // Fetch FX rates
-    const currencies = [...new Set(holdings.map(h => h.currency).filter(c => c !== 'TWD'))];
-    await Promise.allSettled(currencies.map(async (cur) => {
-      try {
-        const data = await api.getFX(cur, 'TWD');
-        newFx[cur] = data.rate;
-      } catch { errs.push(`匯率 ${cur}/TWD 取得失敗`); }
-    }));
-
-    // Fetch stock prices
-    await Promise.allSettled(holdings.map(async (h) => {
-      if (h.asset_class === 'cash' || h.asset_class === 'forex') return;
-      const symbol = h.currency === 'TWD' && !h.ticker.includes('.') ? `${h.ticker}.TW` : h.ticker;
-      try {
-        const data = await api.getPrice(symbol);
-        newPrices[h.ticker] = data.price;
-      } catch { errs.push(`${h.ticker} 市價取得失敗`); }
-    }));
-
-    setPrices(newPrices);
-    setFxRates(newFx);
-    setErrors(errs);
-    setFetching(false);
+    await refreshMarketData(holdings);
   };
 
-  // Compute TWD value for each holding
   const computeValue = (h) => {
     if (manualValues[h.id] != null) return manualValues[h.id];
     const fxRate = h.currency === 'TWD' ? 1 : (fxRates[h.currency] ?? null);
