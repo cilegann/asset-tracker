@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 *.log
+server/backups/
 data.db*
 .DS_Store
 .vscode/
