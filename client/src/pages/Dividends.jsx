@@ -103,6 +103,20 @@ export default function Dividends() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [poolModalState, setPoolModalState] = useState(null);
+  const [poolSelection, setPoolSelection] = useState({});
+
+  const togglePoolSelection = (currency, ticker) => {
+    setPoolSelection(prev => {
+      const curSel = prev[currency] || {};
+      return {
+        ...prev,
+        [currency]: {
+          ...curSel,
+          [ticker]: !curSel[ticker]
+        }
+      };
+    });
+  };
 
   const fetchAll = useCallback(async () => {
     const [d, h] = await Promise.all([api.getDividends(), api.getHoldings()]);
@@ -232,34 +246,54 @@ export default function Dividends() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(pendingByCurrency).map(([currency, data]) => (
-              <div key={currency} className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
-                  <span className="font-semibold text-amber-400">{currency} 資金池</span>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-amber-400">{fmtNum(data.total)}</span>
-                    <button onClick={() => setPoolModalState({ currency, maxAmount: data.total })} 
-                      className="btn-success py-1 px-2 text-xs">
-                      <RefreshCw size={11} /> 合併再投入
-                    </button>
+            {Object.entries(pendingByCurrency).map(([currency, data]) => {
+              const selectedObj = poolSelection[currency] || {};
+              const selectedTickers = Object.keys(selectedObj).filter(k => selectedObj[k]);
+              const selectedSum = selectedTickers.reduce((sum, t) => sum + (data.tickers[t] || 0), 0);
+
+              return (
+                <div key={currency} className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
+                    <span className="font-semibold text-amber-400">{currency} 資金池</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-amber-400">{fmtNum(data.total)}</span>
+                        {selectedSum > 0 && (
+                          <span className="text-emerald-400 text-xs font-semibold animate-fade-in">
+                            已選: {fmtNum(selectedSum)}
+                          </span>
+                        )}
+                      </div>
+                      <button onClick={() => setPoolModalState({ currency, maxAmount: selectedSum > 0 ? selectedSum : data.total })} 
+                        className="btn-success py-1 px-2 text-xs">
+                        <RefreshCw size={11} /> 合併再投入
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                    {Object.entries(data.tickers).map(([ticker, amt]) => (
+                      <div key={ticker} className="flex items-center justify-between text-xs text-slate-400 hover:text-slate-300 p-1 -mx-1 rounded hover:bg-slate-800/50 transition-colors">
+                        <label className="flex items-center gap-2 cursor-pointer flex-1">
+                          <input type="checkbox" 
+                            className="rounded border-slate-600 bg-slate-900/50 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900" 
+                            checked={!!selectedObj[ticker]}
+                            onChange={() => togglePoolSelection(currency, ticker)}
+                          />
+                          <span>{ticker}</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono">{fmtNum(amt)}</span>
+                          <button onClick={() => setPoolModalState({ currency, sourceTicker: ticker, maxAmount: amt })} 
+                            className="btn-success py-0.5 px-1.5 text-[10px]">
+                            <RefreshCw size={10} /> 再投入
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                  {Object.entries(data.tickers).map(([ticker, amt]) => (
-                    <div key={ticker} className="flex items-center justify-between text-xs text-slate-400 hover:text-slate-300">
-                      <span>{ticker}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono">{fmtNum(amt)}</span>
-                        <button onClick={() => setPoolModalState({ currency, sourceTicker: ticker, maxAmount: amt })} 
-                          className="btn-success py-0.5 px-1.5 text-[10px]">
-                          <RefreshCw size={10} /> 再投入
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
