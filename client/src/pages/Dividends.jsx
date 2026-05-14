@@ -279,7 +279,14 @@ export default function Dividends() {
                             checked={!!selectedObj[ticker]}
                             onChange={() => togglePoolSelection(currency, ticker)}
                           />
-                          <span>{ticker}</span>
+                          <span className="flex items-baseline gap-1 truncate">
+                            <span>{ticker}</span>
+                            {getHoldingName(ticker) && (
+                              <span className="text-[10px] text-slate-500 truncate max-w-[120px] sm:max-w-none" title={getHoldingName(ticker)}>
+                                ({getHoldingName(ticker)})
+                              </span>
+                            )}
+                          </span>
                         </label>
                         <div className="flex items-center gap-2">
                           <span className="font-mono">{fmtNum(amt)}</span>
