@@ -156,6 +156,51 @@ app.get('/api/dividends', (req, res) => {
   res.json(result);
 });
 
+// GET unified cashflow: dividends + reinvestments merged and sorted by date
+app.get('/api/cashflow', (req, res) => {
+  const dividends = db.prepare(`
+    SELECT d.*, COALESCE(SUM(r.amount), 0) as reinvested_amount
+    FROM dividends d
+    LEFT JOIN reinvestments r ON r.dividend_id = d.id
+    GROUP BY d.id
+  `).all();
+
+  const divFlows = dividends.map(d => ({
+    id: `d-${d.id}`,
+    type: 'dividend',
+    date: d.received_date,
+    ticker: d.ticker,
+    amount: d.amount,
+    currency: d.currency,
+    note: d.note,
+    status: d.status,
+    raw_id: d.id,
+  }));
+
+  const reinvestments = db.prepare(`
+    SELECT r.*, d.ticker as source_ticker, d.currency
+    FROM reinvestments r
+    JOIN dividends d ON d.id = r.dividend_id
+    ORDER BY r.reinvest_date DESC
+  `).all();
+
+  const reinvestFlows = reinvestments.map(r => ({
+    id: `r-${r.id}`,
+    type: 'reinvestment',
+    date: r.reinvest_date,
+    ticker: r.target_ticker,
+    source_ticker: r.source_ticker,
+    amount: -r.amount,
+    currency: r.currency,
+    note: r.note,
+    raw_id: r.id,
+  }));
+
+  const all = [...divFlows, ...reinvestFlows].sort((a, b) => b.date.localeCompare(a.date));
+  res.json(all);
+});
+
+
 // POST create dividend record
 app.post('/api/dividends', (req, res) => {
   const { holding_id, ticker, received_date, amount, currency, note } = req.body;

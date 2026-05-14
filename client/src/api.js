@@ -31,6 +31,9 @@ export const api = {
   searchName: (symbol) => axios.get(`${BASE}/market/search`, { params: { symbol } }).then(r => r.data),
   getFX: (from, to) => axios.get(`${BASE}/market/fx`, { params: { from, to } }).then(r => r.data),
 
+  // Cashflow (merged dividends + reinvestments)
+  getCashflow: () => axios.get(`${BASE}/cashflow`).then(r => r.data),
+
   // Summary
   getSummary: () => axios.get(`${BASE}/summary`).then(r => r.data),
 };
