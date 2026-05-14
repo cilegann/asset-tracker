@@ -25,6 +25,8 @@ export default function Holdings() {
   const [sortKey, setSortKey] = useState('ticker');
   const [sortOrder, setSortOrder] = useState('asc');
 
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   const fetchHoldings = useCallback(async () => {
     try {
       const data = await api.getHoldings();
@@ -102,6 +104,29 @@ export default function Holdings() {
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === tableData.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(tableData.map(h => h.id)));
+    }
+  };
+
+  const selectedTotal = useMemo(() => {
+    return tableData
+      .filter(h => selectedIds.has(h.id))
+      .reduce((sum, h) => sum + (h.twd_value || 0), 0);
+  }, [tableData, selectedIds]);
+
   const grouped = ASSET_CLASSES.map(ac => ({
     ...ac,
     items: holdings.filter(h => h.asset_class === ac.value),
@@ -110,7 +135,7 @@ export default function Holdings() {
   if (loading) return <div className="flex items-center justify-center h-64 text-slate-500">載入中…</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 sm:pb-0">
       {/* Summary strip */}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
         {grouped.map(g => (
@@ -133,9 +158,9 @@ export default function Holdings() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchAllPrices} disabled={Object.values(loadingPrices).some(Boolean)}
+          <button onClick={fetchAllPrices} disabled={fetchingAll}
             className="btn-secondary w-full sm:w-auto justify-center">
-            <RefreshCw size={15} className={Object.values(loadingPrices).some(Boolean) ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={fetchingAll ? 'animate-spin' : ''} />
             刷新所有現值
           </button>
           <button className="btn-primary w-full sm:w-auto justify-center" onClick={() => { setEditTarget(null); setShowForm(true); }}>
@@ -151,10 +176,15 @@ export default function Holdings() {
           <p>尚無持倉資料</p>
         </div>
       ) : (
-        <div className="card p-0 overflow-x-auto">
-          <table className="w-full text-sm min-w-[850px] sm:min-w-0">
+        <div className="card p-0 overflow-x-auto relative">
+          <table className="w-full text-sm min-w-[900px] sm:min-w-0">
             <thead>
               <tr className="border-b border-slate-700/70 text-[10px] uppercase tracking-wider text-slate-500">
+                <th className="px-4 py-3 text-left w-10">
+                  <input type="checkbox" checked={selectedIds.size === tableData.length && tableData.length > 0}
+                    onChange={toggleSelectAll}
+                    className="checkbox-custom" />
+                </th>
                 <th className="text-left px-4 py-3 cursor-pointer hover:text-slate-300" onClick={() => toggleSort('ticker')}>
                   代號 / 名稱 {sortKey === 'ticker' && (sortOrder === 'asc' ? '↑' : '↓')}
                 </th>
@@ -177,8 +207,14 @@ export default function Holdings() {
                 const ac = getAssetClass(h.asset_class);
                 const price = prices[h.ticker];
                 const twdValue = h.twd_value;
+                const isSelected = selectedIds.has(h.id);
                 return (
-                  <tr key={h.id} className={`border-b border-slate-800 hover:bg-slate-700/30 transition-colors ${i === tableData.length - 1 ? 'border-0' : ''}`}>
+                  <tr key={h.id} className={`border-b border-slate-800 hover:bg-slate-700/30 transition-colors 
+                    ${isSelected ? 'bg-indigo-900/10' : ''} ${i === tableData.length - 1 ? 'border-0' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(h.id)}
+                        className="checkbox-custom" />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-100">{h.ticker}</div>
                       {h.name && <div className="text-[11px] text-slate-500 truncate max-w-[150px]">{h.name}</div>}
@@ -230,6 +266,24 @@ export default function Holdings() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Floating Summary Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:w-80 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="card bg-indigo-600 shadow-2xl shadow-indigo-500/20 border-indigo-400/30 text-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-medium opacity-80">已選擇 {selectedIds.size} 項持倉</div>
+              <button onClick={() => setSelectedIds(new Set())} className="text-xs hover:underline opacity-80">取消</button>
+            </div>
+            <div className="flex items-end justify-between">
+              <div className="text-xs opacity-70 mb-1">所選現值總額 (TWD)</div>
+              <div className="text-2xl font-bold font-mono">
+                {fmtNum(selectedTotal, 0)}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
