@@ -166,7 +166,10 @@ export default function Dashboard() {
                   contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', color: '#e2e8f0' }}
                 />
                 <Legend
-                  formatter={(value) => <span style={{ color: '#94a3b8', fontSize: 12 }}>{value}</span>}
+                  formatter={(value, entry) => {
+                    const pct = totalValue > 0 && entry.payload.value ? ((entry.payload.value / totalValue) * 100).toFixed(1) : 0;
+                    return <span style={{ color: '#94a3b8', fontSize: 12 }}>{value} ({pct}%)</span>;
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>

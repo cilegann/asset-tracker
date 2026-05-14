@@ -73,7 +73,7 @@ export default function DividendForm({ holdings, onSave, onClose }) {
         </div>
 
         <div>
-          <label className="label">股息金額 *</label>
+          <label className="label">收益金額 *</label>
           <input className="input" type="number" inputMode="decimal" step="any" min="0.01" placeholder="0.00"
             value={form.amount} onChange={e => set('amount', e.target.value)} required />
         </div>
