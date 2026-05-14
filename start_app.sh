@@ -13,7 +13,8 @@ npm run start &
 
 echo "Starting Frontend on port 9457..."
 cd "$PROJECT_ROOT/client"
-npm run dev &
+npm run dev:remote &
+#npm run dev &
 
 # Wait for background processes
 wait
