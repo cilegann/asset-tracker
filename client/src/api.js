@@ -44,7 +44,6 @@ export const ASSET_CLASSES = [
   { value: 'bond',     label: '債券', color: '#f59e0b', emoji: '📄' },
   { value: 'forex',    label: '外幣', color: '#10b981', emoji: '💱' },
   { value: 'cash',     label: '現金', color: '#94a3b8', emoji: '💵' },
-  { value: 'reinvest', label: '再投入', color: '#6366f1', emoji: '🔄' },
 ];
 
 export const getAssetClass = (value) => {

@@ -210,7 +210,8 @@ app.get('/api/cashflow', (req, res) => {
   }));
 
   const reinvestments = db.prepare(`
-    SELECT r.*, d.ticker as source_ticker, d.currency
+    SELECT r.*, d.ticker as source_ticker, d.currency,
+      (SELECT asset_class FROM holdings WHERE ticker = r.target_ticker LIMIT 1) as target_asset_class
     FROM reinvestments r
     JOIN dividends d ON d.id = r.dividend_id
     ORDER BY r.reinvest_date DESC
@@ -222,7 +223,7 @@ app.get('/api/cashflow', (req, res) => {
     date: r.reinvest_date,
     ticker: r.target_ticker,
     source_ticker: r.source_ticker,
-    asset_class: 'reinvest',
+    asset_class: r.target_asset_class,
     amount: -r.amount,
     currency: r.currency,
     note: r.note,
