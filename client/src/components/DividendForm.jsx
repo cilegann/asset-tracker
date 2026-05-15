@@ -31,6 +31,8 @@ export default function DividendForm({ holdings, onSave, onClose }) {
       await onSave({
         ...form,
         holding_id: form.holding_id ? parseInt(form.holding_id) : null,
+        // If linked to a holding, let the DB/server handle asset_class via link
+        asset_class: form.holding_id ? null : form.asset_class,
         amount: parseFloat(form.amount),
       });
       onClose();
