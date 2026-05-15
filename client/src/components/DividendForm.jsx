@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Modal from './Modal';
+import { ASSET_CLASSES } from '../api';
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'GBP', 'HKD'];
 
@@ -7,6 +8,7 @@ export default function DividendForm({ holdings, onSave, onClose }) {
   const [form, setForm] = useState({
     holding_id: '',
     ticker: '',
+    asset_class: 'tw_stock',
     received_date: new Date().toISOString().slice(0, 10),
     amount: '',
     currency: 'TWD',
@@ -57,6 +59,17 @@ export default function DividendForm({ holdings, onSave, onClose }) {
           <input className="input" placeholder="e.g. 0050" value={form.ticker}
             onChange={e => set('ticker', e.target.value.toUpperCase())} required />
         </div>
+
+        {!form.holding_id && (
+          <div>
+            <label className="label">資產類別 *</label>
+            <select className="input" value={form.asset_class} onChange={e => set('asset_class', e.target.value)}>
+              {ASSET_CLASSES.filter(ac => ac.value !== 'reinvest').map(ac => (
+                <option key={ac.value} value={ac.value}>{ac.emoji} {ac.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

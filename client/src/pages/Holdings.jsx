@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Pencil, Trash2, TrendingUp, RefreshCw, BarChart2, ArrowUpDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, RefreshCw, BarChart2, ArrowUpDown, X, DollarSign, Clock, Info } from 'lucide-react';
 import { api, ASSET_CLASSES, getAssetClass, fmtNum } from '../api';
 import { useMarket } from '../contexts/MarketContext';
 import HoldingForm from '../components/HoldingForm';
 import AdjustQuantityModal from '../components/AdjustQuantityModal';
+import Modal from '../components/Modal';
 
 const STATUS_COLORS = {
   tw_stock: 'bg-indigo-600/20 text-indigo-300 border-indigo-700/50',
@@ -25,6 +26,7 @@ export default function Holdings() {
   const [sortKey, setSortKey] = useState('ticker');
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [detailTarget, setDetailTarget] = useState(null);
 
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const saved = localStorage.getItem('holdings_columns');
@@ -162,6 +164,87 @@ export default function Holdings() {
     items: holdings.filter(h => h.asset_class === ac.value),
   }));
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Position Detail Modal Component
+  // ─────────────────────────────────────────────────────────────────────────────
+  const PositionDetailModal = ({ h, onClose }) => {
+    const ac = getAssetClass(h.asset_class);
+    const price = prices[h.ticker];
+    const twdValue = h.twd_value;
+    const unrealizedGain = (price && h.avg_cost) ? (price - h.avg_cost) * h.quantity : null;
+    const gainPercent = (price && h.avg_cost) ? ((price - h.avg_cost) / h.avg_cost) * 100 : null;
+
+    return (
+      <Modal title={`持倉詳情: ${h.ticker}`} onClose={onClose}>
+        <div className="space-y-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="text-xl font-bold text-slate-100">{h.name || h.ticker}</h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`badge border ${STATUS_COLORS[h.asset_class]}`}>
+                  {ac.emoji} {ac.label}
+                </span>
+                <span className="text-xs text-slate-500 uppercase">{h.currency}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-slate-500 uppercase mb-1">現值 (TWD)</div>
+              <div className="text-2xl font-bold text-indigo-400 font-mono">
+                {twdValue != null ? fmtNum(twdValue, 0) : '—'}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="card bg-slate-800/40 border-slate-700/50 p-3">
+              <div className="text-[10px] text-slate-500 uppercase mb-1">持有數量</div>
+              <div className="text-lg font-semibold font-mono">{fmtNum(h.quantity, 4)}</div>
+            </div>
+            <div className="card bg-slate-800/40 border-slate-700/50 p-3">
+              <div className="text-[10px] text-slate-500 uppercase mb-1">目前市價</div>
+              <div className="text-lg font-semibold font-mono text-emerald-400">
+                {price != null ? fmtNum(price) : '—'}
+              </div>
+            </div>
+            <div className="card bg-slate-800/40 border-slate-700/50 p-3">
+              <div className="text-[10px] text-slate-500 uppercase mb-1">平均成本</div>
+              <div className="text-lg font-semibold font-mono text-amber-400">
+                {h.avg_cost ? fmtNum(h.avg_cost) : '—'}
+              </div>
+            </div>
+            <div className="card bg-slate-800/40 border-slate-700/50 p-3">
+              <div className="text-[10px] text-slate-500 uppercase mb-1">未實現損益</div>
+              <div className={`text-lg font-semibold font-mono ${unrealizedGain >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {unrealizedGain != null ? (unrealizedGain >= 0 ? '+' : '') + fmtNum(unrealizedGain) : '—'}
+                {gainPercent != null && (
+                  <span className="text-xs ml-1 opacity-80">({gainPercent.toFixed(2)}%)</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {h.note && (
+            <div className="space-y-2">
+              <div className="text-xs text-slate-500 uppercase">備註</div>
+              <div className="bg-slate-900/40 rounded-lg p-3 text-sm text-slate-300 border border-slate-800/50 whitespace-pre-wrap">
+                {h.note}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => { setEditTarget(h); setShowForm(true); onClose(); }} className="btn-secondary text-xs">
+              <Pencil size={14} /> 編輯
+            </button>
+            <button onClick={() => { setAdjustTarget(h); onClose(); }} className="btn-secondary text-xs">
+              <TrendingUp size={14} /> 調整數量
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64 text-slate-500">載入中…</div>;
 
   const isVisible = (id) => visibleColumns.includes(id);
@@ -281,9 +364,11 @@ export default function Holdings() {
                 const twdValue = h.twd_value;
                 const isSelected = selectedIds.has(h.id);
                 return (
-                  <tr key={h.id} className={`border-b border-slate-800 hover:bg-slate-700/30 transition-colors
+                  <tr key={h.id} 
+                    onClick={() => setDetailTarget(h)}
+                    className={`border-b border-slate-800 hover:bg-slate-700/30 transition-colors cursor-pointer
                     ${isSelected ? 'bg-indigo-900/10' : ''} ${i === tableData.length - 1 ? 'border-0' : ''}`}>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(h.id)}
                         className="checkbox-custom" />
                     </td>
@@ -333,7 +418,7 @@ export default function Holdings() {
                       </td>
                     )}
                     {isVisible('actions') && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1 justify-end">
                           <button onClick={() => setAdjustTarget(h)} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-500 hover:text-indigo-400" title="調整數量">
                             <TrendingUp size={14} />
@@ -378,6 +463,9 @@ export default function Holdings() {
       )}
       {adjustTarget && (
         <AdjustQuantityModal holding={adjustTarget} onSave={handleAdjust} onClose={() => setAdjustTarget(null)} />
+      )}
+      {detailTarget && (
+        <PositionDetailModal h={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
     </div>
   );

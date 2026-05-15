@@ -164,7 +164,8 @@ app.delete('/api/holdings/:id', (req, res) => {
 // GET all dividends (with reinvestments joined)
 app.get('/api/dividends', (req, res) => {
   const dividends = db.prepare(`
-    SELECT d.*, h.asset_class,
+    SELECT d.*, 
+      COALESCE(d.asset_class, h.asset_class, (SELECT asset_class FROM holdings WHERE ticker = d.ticker LIMIT 1)) as asset_class,
       COALESCE(SUM(r.amount), 0) as reinvested_amount
     FROM dividends d
     LEFT JOIN holdings h ON d.holding_id = h.id
@@ -184,7 +185,9 @@ app.get('/api/dividends', (req, res) => {
 // GET unified cashflow: dividends + reinvestments merged and sorted by date
 app.get('/api/cashflow', (req, res) => {
   const dividends = db.prepare(`
-    SELECT d.*, h.asset_class, COALESCE(SUM(r.amount), 0) as reinvested_amount
+    SELECT d.*, 
+      COALESCE(d.asset_class, h.asset_class, (SELECT asset_class FROM holdings WHERE ticker = d.ticker LIMIT 1)) as asset_class,
+      COALESCE(SUM(r.amount), 0) as reinvested_amount
     FROM dividends d
     LEFT JOIN holdings h ON d.holding_id = h.id
     LEFT JOIN reinvestments r ON r.dividend_id = d.id
@@ -231,16 +234,16 @@ app.get('/api/cashflow', (req, res) => {
 
 // POST create dividend record
 app.post('/api/dividends', (req, res) => {
-  const { holding_id, ticker, received_date, amount, currency, note } = req.body;
+  const { holding_id, ticker, received_date, amount, currency, note, asset_class } = req.body;
   if (!ticker || !received_date || amount == null)
     return res.status(400).json({ error: 'ticker, received_date, amount are required' });
 
   if (isInvalidNum(amount) || amount < 0) return res.status(400).json({ error: 'Invalid amount' });
 
   const result = db.prepare(`
-    INSERT INTO dividends (holding_id, ticker, received_date, amount, currency, note)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(holding_id ?? null, ticker.toUpperCase(), received_date, amount, currency || 'TWD', note || '');
+    INSERT INTO dividends (holding_id, ticker, received_date, amount, currency, note, asset_class)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(holding_id ?? null, ticker.toUpperCase(), received_date, amount, currency || 'TWD', note || '', asset_class || null);
 
   res.status(201).json(db.prepare('SELECT * FROM dividends WHERE id = ?').get(result.lastInsertRowid));
 });

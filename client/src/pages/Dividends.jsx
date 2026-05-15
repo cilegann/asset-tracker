@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, DollarSign, RefreshCw, CheckCircle2, Clock,
-  BarChart2, ArrowUpDown, TrendingUp, TrendingDown, ArrowRight,
+  BarChart2, ArrowUpDown, TrendingUp, TrendingDown, ArrowRight, X
 } from 'lucide-react';
 import { api, fmtNum, getAssetClass } from '../api';
 import DividendForm from '../components/DividendForm';
 import PoolReinvestModal from '../components/PoolReinvestModal';
+import Modal from '../components/Modal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cashflow row component
@@ -66,33 +67,40 @@ function CashflowRow({ flow, onDeleteDividend, onDeleteReinvestment }) {
 // Ticker summary card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function TickerCard({ t, selected, disabled, onToggle, getHoldingName }) {
+function TickerCard({ t, selected, disabled, onToggle, onShowDetail, getHoldingName }) {
   const hasPending = t.pending > 0.001;
 
   return (
-    <label
-      className={`relative flex flex-col bg-slate-900/40 border rounded-xl p-3 cursor-pointer transition-all select-none
-        ${disabled && !selected ? 'opacity-40 cursor-not-allowed' : ''}
+    <div
+      onClick={() => onShowDetail(t)}
+      className={`relative flex flex-col border rounded-xl p-3 cursor-pointer transition-all select-none group
         ${selected
-          ? 'border-emerald-500/60 bg-emerald-900/10 ring-1 ring-emerald-500/30'
-          : 'border-slate-800/60 hover:border-slate-700'
+          ? 'border-emerald-500 bg-emerald-900/20 ring-1 ring-emerald-500/30'
+          : hasPending
+            ? 'border-amber-500/40 bg-amber-900/10 hover:border-amber-500/60'
+            : 'border-slate-800/60 bg-slate-900/40 hover:border-slate-700'
         }`}
     >
-      <input
-        type="checkbox"
-        className="sr-only"
-        checked={selected}
-        disabled={disabled && !selected}
-        onChange={() => !(disabled && !selected) && onToggle(t)}
-      />
-      {selected && (
-        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
-          <CheckCircle2 size={10} className="text-white" />
-        </span>
-      )}
+      {/* Selection Checkbox */}
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!disabled || selected) onToggle(t);
+        }}
+        className={`absolute top-2 right-2 w-5 h-5 rounded-lg border flex items-center justify-center transition-all
+          ${selected 
+            ? 'bg-emerald-500 border-emerald-500' 
+            : 'border-slate-700 bg-slate-800/50 hover:border-slate-500'
+          }
+          ${disabled && !selected ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer hover:scale-110'}
+        `}
+      >
+        {selected && <CheckCircle2 size={12} className="text-white" />}
+      </div>
+
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="text-xs">{getAssetClass(t.asset_class).emoji}</span>
-        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">{t.ticker}</span>
+        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide group-hover:text-slate-300 transition-colors">{t.ticker}</span>
       </div>
       <span className="text-[10px] text-slate-600 truncate mb-2" title={getHoldingName(t.ticker)}>
         {getHoldingName(t.ticker) || <span className="italic">—</span>}
@@ -104,14 +112,60 @@ function TickerCard({ t, selected, disabled, onToggle, getHoldingName }) {
         <span className="text-[9px] text-slate-500 uppercase">{t.currency}</span>
       </div>
 
-      {/* Pending */}
-      {hasPending && (
+      {/* Pending Indicator */}
+      {hasPending ? (
         <div className="flex items-center gap-1 mt-0.5">
           <Clock size={9} className="text-amber-400 flex-shrink-0" />
-          <span className="text-[10px] text-amber-400 font-mono">{fmtNum(t.pending)} 待投入</span>
+          <span className="text-[10px] text-amber-400 font-mono font-medium">{fmtNum(t.pending)} 待投入</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1 mt-0.5 opacity-40">
+          <CheckCircle2 size={9} className="text-slate-500 flex-shrink-0" />
+          <span className="text-[10px] text-slate-500 font-mono">已全數投入</span>
         </div>
       )}
-    </label>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticker Detail Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TickerDetailModal({ ticker, currency, cashflows, onClose, onDeleteDividend, onDeleteReinvestment }) {
+  const filtered = cashflows.filter(f => f.ticker === ticker && f.currency === currency);
+  
+  return (
+    <Modal title={`${ticker} 現金流歷史 (${currency})`} onClose={onClose}>
+      <div className="max-h-[60vh] overflow-y-auto -mx-6">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-slate-800 z-10">
+            <tr className="border-b border-slate-700 text-[10px] uppercase tracking-wider text-slate-500">
+              <th className="text-left px-6 py-3">日期</th>
+              <th className="text-left px-6 py-3">類型</th>
+              <th className="text-right px-6 py-3">金額</th>
+              <th className="text-left px-6 py-3">備註</th>
+              <th className="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(flow => (
+              <CashflowRow 
+                key={flow.id} 
+                flow={flow} 
+                onDeleteDividend={onDeleteDividend} 
+                onDeleteReinvestment={onDeleteReinvestment} 
+              />
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan="5" className="text-center py-10 text-slate-500">尚無紀錄</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Modal>
   );
 }
 
@@ -133,6 +187,7 @@ export default function Dividends() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [poolModalState, setPoolModalState] = useState(null);
+  const [detailTicker, setDetailTicker] = useState(null);
 
   // Ticker summary panel state
   const [sortKey, setSortKey] = useState('total_desc');
@@ -302,6 +357,7 @@ export default function Dividends() {
                   selected={isSelected}
                   disabled={isDisabled}
                   onToggle={toggleTicker}
+                  onShowDetail={setDetailTicker}
                   getHoldingName={getHoldingName}
                 />
               );
@@ -369,6 +425,17 @@ export default function Dividends() {
           holdings={holdings}
           onSave={handlePoolReinvest}
           onClose={() => { setPoolModalState(null); setSelectedTickers([]); }}
+        />
+      )}
+
+      {detailTicker && (
+        <TickerDetailModal
+          ticker={detailTicker.ticker}
+          currency={detailTicker.currency}
+          cashflows={cashflows}
+          onClose={() => setDetailTicker(null)}
+          onDeleteDividend={handleDeleteDividend}
+          onDeleteReinvestment={handleDeleteReinvestment}
         />
       )}
     </div>

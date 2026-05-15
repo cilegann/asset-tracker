@@ -45,6 +45,16 @@ db.exec(`
     note            TEXT    DEFAULT '',
     created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  -- Migration: Add asset_class to dividends if it doesn't exist
+  -- (Using a simple try-catch block for ALTER TABLE is safer in sqlite-exec)
 `);
+
+try {
+  db.exec("ALTER TABLE dividends ADD COLUMN asset_class TEXT;");
+} catch (e) {
+  // Column probably already exists, ignore
+}
+
 
 module.exports = db;

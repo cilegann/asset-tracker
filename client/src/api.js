@@ -44,10 +44,13 @@ export const ASSET_CLASSES = [
   { value: 'bond',     label: '債券', color: '#f59e0b', emoji: '📄' },
   { value: 'forex',    label: '外幣', color: '#10b981', emoji: '💱' },
   { value: 'cash',     label: '現金', color: '#94a3b8', emoji: '💵' },
+  { value: 'reinvest', label: '再投入', color: '#6366f1', emoji: '🔄' },
 ];
 
-export const getAssetClass = (value) =>
-  ASSET_CLASSES.find(a => a.value === value) ?? { label: value, color: '#888', emoji: '❓' };
+export const getAssetClass = (value) => {
+  if (!value) return { label: '未分類', color: '#64748b', emoji: '📈' };
+  return ASSET_CLASSES.find(a => a.value === value) ?? { label: value, color: '#888', emoji: '❓' };
+};
 
 export const fmtNum = (n, digits = 2) =>
   n == null ? '—' : Number(n).toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: digits });
